@@ -1,0 +1,38 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          # 🔴 AGP 8.1.x is NOT compatible with Gradle 9+ (default) — pin 8.5.
+          gradle-version: "8.5"
+      - name: Build release APK
+        run: gradle assembleRelease
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: app/build/outputs/apk/release/*.apk
+      - name: Publish release
+        if: github.ref == 'refs/heads/main'
+        uses: ncipollo/release-action@v1
+        with:
+          tag: latest
+          name: Latest APK
+          artifacts: app/build/outputs/apk/release/*.apk
+          allowUpdates: true
+          removeArtifacts: true
